@@ -129,15 +129,16 @@ module.exports = (io) => {
     });
 
     // ── WEBRTC SIGNALING ──────────────────────────────────────────────────
-    socket.on('call:initiate', ({ targetUserId, conversationId, callType }) => {
+    socket.on('call:initiate', ({ targetUserId, callType, offer }) => {
       io.to(`user:${targetUserId}`).emit('call:incoming', {
         from: { _id: userId, displayName: socket.user.displayName, avatar: socket.user.avatar },
-        conversationId, callType
+        callType,
+        offer,   // WebRTC offer passed through
       });
     });
 
-    socket.on('call:accept',  ({ targetUserId }) =>
-      io.to(`user:${targetUserId}`).emit('call:accepted', { from: userId }));
+    socket.on('call:accept',  ({ targetUserId, answer }) =>
+      io.to(`user:${targetUserId}`).emit('call:accepted', { from: userId, answer }));
 
     socket.on('call:reject',  ({ targetUserId }) =>
       io.to(`user:${targetUserId}`).emit('call:rejected', { from: userId }));
