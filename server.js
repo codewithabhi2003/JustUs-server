@@ -6,19 +6,26 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-// DB Connection
+// ================= DB =================
 const connectDB = require('./config/db');
 connectDB();
 
-// App init
+// ================= APP INIT =================
 const app = express();
 const httpServer = http.createServer(app);
+
+// ================= ALLOWED ORIGINS =================
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://just-us-client-orpin.vercel.app"
+];
 
 // ================= SOCKET.IO =================
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || "*",
-    methods: ['GET', 'POST']
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true
   },
   pingTimeout: 60000,
   pingInterval: 25000
@@ -29,7 +36,16 @@ app.set('io', io);
 
 // ================= MIDDLEWARE =================
 app.use(cors({
-  origin: process.env.CLIENT_URL || "*",
+  origin: function (origin, callback) {
+    // allow requests with no origin (mobile apps, Postman)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("❌ Not allowed by CORS"));
+    }
+  },
   credentials: true
 }));
 
@@ -37,7 +53,7 @@ app.use(express.json({ limit: '10mb' }));
 
 // ================= ROUTES =================
 
-// Root route (FIX for "Cannot GET /")
+// Root route
 app.get('/', (req, res) => {
   res.json({
     success: true,
@@ -76,7 +92,7 @@ require('./socket/socketHandler')(io);
 // ================= ERROR HANDLER =================
 app.use(require('./middleware/errorHandler'));
 
-// ================= SERVER START =================
+// ================= SERVER =================
 const PORT = process.env.PORT || 5000;
 
 httpServer.listen(PORT, () => {
