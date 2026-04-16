@@ -1,0 +1,68 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'server/**'
+
+jobs:
+  test:
+    name: 🧪 Backend Checks
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 🔥 Check syntax for ALL JS files
+      - name: Check syntax
+        run: |
+          echo "Checking syntax..."
+          find . -name "*.js" ! -path "*/node_modules/*" -exec node --check {} \;
+          echo "✅ Syntax OK"
+
+      # 🧠 Check important files exist
+      - name: Verify required files
+        run: |
+          echo "Checking required files..."
+          files=(
+            "server.js"
+            "config/db.js"
+            "models/User.js"
+            "controllers/authController.js"
+            "routes/authRoutes.js"
+          )
+          for f in "${files[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "❌ Missing: $f"
+              exit 1
+            fi
+            echo "✅ $f"
+          done
+
+      # 🚀 Optional (but nice): Start server test
+      - name: Start server test
+        run: |
+          node server.js &
+          sleep 5
+          echo "✅ Server started successfully"
